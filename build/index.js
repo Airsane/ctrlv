@@ -48,7 +48,7 @@ class Ctrlv {
             partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
             messageCacheLifetime: 180,
         });
-        this.client.login('OTI0Mzk5MTQ5Njc4NDg1NTY1.Ycd_yw.HepK91VOFha8KtNiHZfHcB8acRI');
+        this.client.login(process.env.TOKEN);
     }
     generateCode(length) {
         let result = '';
