@@ -34,12 +34,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = __importDefault(require("axios"));
 const cheerio = __importStar(require("cheerio"));
 const fs = __importStar(require("fs"));
+const express_1 = __importDefault(require("express"));
+const path_1 = __importDefault(require("path"));
+const discord_js_1 = require("discord.js");
 class Ctrlv {
     constructor() {
         this.notExists = '/images/notexists.png';
         this.images = [];
         this.loadData();
         this.work();
+        this.client = new discord_js_1.Client({
+            intents: [discord_js_1.Intents.FLAGS.GUILD_PRESENCES, discord_js_1.Intents.FLAGS.GUILD_MEMBERS, discord_js_1.Intents.FLAGS.GUILD_VOICE_STATES, discord_js_1.Intents.FLAGS.GUILDS, discord_js_1.Intents.FLAGS.GUILD_MESSAGES, discord_js_1.Intents.FLAGS.GUILD_MESSAGE_REACTIONS, discord_js_1.Intents.FLAGS.GUILD_MESSAGE_TYPING, discord_js_1.Intents.FLAGS.GUILD_INVITES, discord_js_1.Intents.FLAGS.GUILD_BANS, discord_js_1.Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS, discord_js_1.Intents.FLAGS.GUILD_INTEGRATIONS],
+            partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
+            messageCacheLifetime: 180,
+        });
+        this.client.login('OTI0Mzk5MTQ5Njc4NDg1NTY1.Ycd_yw.HepK91VOFha8KtNiHZfHcB8acRI');
     }
     generateCode(length) {
         let result = '';
@@ -50,6 +59,23 @@ class Ctrlv {
                 charactersLength));
         }
         return result;
+    }
+    sendImage(urld) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const d = (yield axios_1.default.get('https://ctrlv.cz' + urld, {
+                responseType: 'arraybuffer'
+            })).data;
+            const split = urld.split('/');
+            const name = split[split.length - 1];
+            const channel = this.client.channels.cache.get('924399098939994196');
+            const attachment = new discord_js_1.MessageAttachment(d, name);
+            const message = yield channel.send({ files: [attachment] });
+            let url = "";
+            message.attachments.map((attachment) => {
+                url = attachment.url;
+            });
+            return url;
+        });
     }
     getImage() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -80,7 +106,8 @@ class Ctrlv {
             while (true) {
                 const id = yield this.getImage();
                 const date = this.parseDate(id);
-                this.images.push({ id: id, created: date });
+                const url = yield this.sendImage(id);
+                this.images.push({ id: id, created: date, url: url });
                 console.log(`Found new entry ${id} - ${date}\nTotal: ${this.images.length}`);
                 this.saveData();
             }
@@ -88,8 +115,6 @@ class Ctrlv {
     }
 }
 const d = new Ctrlv();
-const express_1 = __importDefault(require("express"));
-const path_1 = __importDefault(require("path"));
 const app = express_1.default();
 var cors = require('cors');
 app.use(cors());
@@ -97,15 +122,6 @@ app.use(express_1.default.json());
 app.get("/list", (req, res) => {
     res.send(fs.readFileSync('data.json', 'utf-8'));
 });
-app.post('/downloadImg', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const url = req.body.url;
-    const d = yield axios_1.default.get(url, {
-        responseType: 'arraybuffer'
-    })
-        .then(response => Buffer.from(response.data, 'binary').toString('base64'));
-    res.send(d);
-    console.log(url);
-}));
 app.use(express_1.default.static(path_1.default.join(__dirname, '..', 'web')));
 app.get('/', (req, res) => {
     res.sendFile(path_1.default.join(__dirname, '..', 'web', 'index.html'));
